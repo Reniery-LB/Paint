@@ -1,12 +1,10 @@
 package paint;
 
 import java.awt.EventQueue;
-
 import javax.swing.BorderFactory;
 import javax.swing.ImageIcon;
 import javax.swing.JFrame;
 import javax.swing.JPanel;
-
 import java.awt.BasicStroke;
 import java.awt.BorderLayout;
 import java.awt.Color;
@@ -15,13 +13,11 @@ import java.awt.Font;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.Point;
-
 import javax.swing.JButton;
 import javax.swing.JColorChooser;
-import javax.swing.UIManager;
+import javax.swing.SwingConstants;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
-import javax.swing.SwingConstants;
 import javax.swing.JSlider;
 import java.awt.event.ActionListener;
 import java.awt.event.MouseEvent;
@@ -38,11 +34,15 @@ public class Paint implements MouseListener, MouseMotionListener {
     private Point lastPoint;
     
     private Color colorActual = Color.BLACK;
-    private int trazoAncho = 3;
+    private int grosorTrazo = 3;
     
     private List<Trazo> listaDeTrazos = new ArrayList<>();
     private List<Point> puntosActuales = new ArrayList<>();
+    private List<Figura> listaDeFiguras = new ArrayList<>();
     
+    // 1: pincel, 2: rectángulo, 3: círculo, 4: triángulo
+    private int herramientaActual = 1;
+
     class Trazo {
         List<Point> puntos;
         Color color;
@@ -52,6 +52,22 @@ public class Paint implements MouseListener, MouseMotionListener {
             this.puntos = new ArrayList<>(puntos);
             this.color = color;
             this.grosor = grosor;
+        }
+    }
+
+    class Figura {
+        Color color;
+        int grosor;
+        int tipo; // 1: rectángulo, 2: círculo, 3: triángulo
+        Point posicion;
+        int ancho = 100; // Tamaño predeterminado
+        int alto = 100;  // Tamaño predeterminado
+        
+        public Figura(Color color, int grosor, int tipo, Point posicion) {
+            this.color = color;
+            this.grosor = grosor;
+            this.tipo = tipo;
+            this.posicion = posicion;
         }
     }
 
@@ -98,6 +114,7 @@ public class Paint implements MouseListener, MouseMotionListener {
         JButton pincel = new JButton("     Pincel");
         pincel.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent e) {
+                herramientaActual = 1;
                 pincel.setIcon(new ImageIcon("img/pincel2.png"));
                 pincel.setForeground(Color.MAGENTA);
             }
@@ -116,7 +133,7 @@ public class Paint implements MouseListener, MouseMotionListener {
             public void actionPerformed(ActionEvent e) {
                 borrador.setIcon(new ImageIcon("img/borrador2.png"));
                 borrador.setForeground(Color.MAGENTA);
-                colorActual = Color.WHITE;
+                colorActual = drawingPanel.getBackground();
             }
         });
         borrador.setHorizontalAlignment(SwingConstants.LEFT);
@@ -129,12 +146,12 @@ public class Paint implements MouseListener, MouseMotionListener {
         JSlider slider = new JSlider();
         slider.setMinimum(1);
         slider.setMaximum(50);
-        slider.setValue(trazoAncho);
+        slider.setValue(grosorTrazo);
         slider.setBounds(118, 375, 200, 26);
         slider.addChangeListener(new ChangeListener() {
             @Override
             public void stateChanged(ChangeEvent e) {
-                trazoAncho = slider.getValue();
+                grosorTrazo = slider.getValue();
             }
         });
         herramientas.add(slider);
@@ -152,6 +169,7 @@ public class Paint implements MouseListener, MouseMotionListener {
         JButton rectangulo = new JButton("     Rectángulo");
         rectangulo.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent e) {
+                herramientaActual = 2;
                 rectangulo.setIcon(new ImageIcon("img/rectangulo2.png"));
                 rectangulo.setForeground(Color.MAGENTA);
             }
@@ -167,6 +185,7 @@ public class Paint implements MouseListener, MouseMotionListener {
         JButton circulo = new JButton("     Círculo");
         circulo.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent e) {
+                herramientaActual = 3;
                 circulo.setIcon(new ImageIcon("img/circulo2.png"));
                 circulo.setForeground(Color.MAGENTA);
             }
@@ -182,6 +201,7 @@ public class Paint implements MouseListener, MouseMotionListener {
         JButton tringulo = new JButton("     Triángulo");
         tringulo.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent e) {
+                herramientaActual = 4;
                 tringulo.setIcon(new ImageIcon("img/triangulo2.png"));
                 tringulo.setForeground(Color.MAGENTA);
             }
@@ -278,7 +298,6 @@ public class Paint implements MouseListener, MouseMotionListener {
         verde.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent e) {
                 colorActual = Color.GREEN;
-        
                 verde.setBorder(BorderFactory.createLineBorder(Color.MAGENTA,4));
             }
         });
@@ -291,6 +310,7 @@ public class Paint implements MouseListener, MouseMotionListener {
         limpiar.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent e) {
                 listaDeTrazos.clear();
+                listaDeFiguras.clear();
                 puntosActuales.clear();
                 drawingPanel.repaint();
                 drawingPanel.setBackground(Color.WHITE);
@@ -362,21 +382,33 @@ public class Paint implements MouseListener, MouseMotionListener {
         fondo.setBounds(0, 0, 1920, 900);
         panel.add(fondo);
     }
-    
 
     @Override
-    public void mouseClicked(MouseEvent e) {}
+    public void mouseClicked(MouseEvent e) {
+        if(herramientaActual == 2) { // Rectángulo
+            listaDeFiguras.add(new Figura(colorActual, grosorTrazo, 1, e.getPoint()));
+        } 
+        else if(herramientaActual == 3) { // Círculo
+            listaDeFiguras.add(new Figura(colorActual, grosorTrazo, 2, e.getPoint()));
+        }
+        else if(herramientaActual == 4) { // Triángulo
+            listaDeFiguras.add(new Figura(colorActual, grosorTrazo, 3, e.getPoint()));
+        }
+        drawingPanel.repaint();
+    }
 
     @Override
     public void mousePressed(MouseEvent e) {
-        lastPoint = e.getPoint();
-        puntosActuales.add(lastPoint);
+        if(herramientaActual == 1) { // Solo para pincel
+            lastPoint = e.getPoint();
+            puntosActuales.add(lastPoint);
+        }
     }
 
     @Override
     public void mouseReleased(MouseEvent e) {
-        if (!puntosActuales.isEmpty()) {
-            listaDeTrazos.add(new Trazo(puntosActuales, colorActual, trazoAncho));
+        if(herramientaActual == 1 && !puntosActuales.isEmpty()) {
+            listaDeTrazos.add(new Trazo(puntosActuales, colorActual, grosorTrazo));
             puntosActuales = new ArrayList<>();
             drawingPanel.repaint();
         }
@@ -390,10 +422,12 @@ public class Paint implements MouseListener, MouseMotionListener {
 
     @Override
     public void mouseDragged(MouseEvent e) {
-        Point newPoint = e.getPoint();
-        puntosActuales.add(newPoint);
-        drawingPanel.repaint();
-        lastPoint = newPoint;
+        if(herramientaActual == 1) { // Solo para pincel
+            Point newPoint = e.getPoint();
+            puntosActuales.add(newPoint);
+            lastPoint = newPoint;
+            drawingPanel.repaint();
+        }
     }
 
     @Override
@@ -409,7 +443,7 @@ public class Paint implements MouseListener, MouseMotionListener {
             super.paintComponent(g);
             Graphics2D g2d = (Graphics2D) g;
             
-            // Dibujar todos los trazos guardados
+            // Dibujar trazos (pincel)
             for (Trazo trazo : listaDeTrazos) {
                 g2d.setColor(trazo.color);
                 g2d.setStroke(new BasicStroke(trazo.grosor));
@@ -423,10 +457,38 @@ public class Paint implements MouseListener, MouseMotionListener {
                 }
             }
             
-            // Dibujar el trazo actual
+            // Dibujar figuras
+            for (Figura figura : listaDeFiguras) {
+                g2d.setColor(figura.color);
+                g2d.setStroke(new BasicStroke(figura.grosor));
+                
+                switch(figura.tipo) {
+                    case 1: // Rectángulo
+                        g2d.drawRect(figura.posicion.x, figura.posicion.y, figura.ancho, figura.alto);
+                        break;
+                    case 2: // Círculo
+                        g2d.drawOval(figura.posicion.x, figura.posicion.y, figura.ancho, figura.alto);
+                        break;
+                    case 3: // Triángulo
+                        int[] xPoints = {
+                            figura.posicion.x + figura.ancho/2, 
+                            figura.posicion.x, 
+                            figura.posicion.x + figura.ancho
+                        };
+                        int[] yPoints = {
+                            figura.posicion.y, 
+                            figura.posicion.y + figura.alto, 
+                            figura.posicion.y + figura.alto
+                        };
+                        g2d.drawPolygon(xPoints, yPoints, 3);
+                        break;
+                }
+            }
+            
+            // Dibujar trazo actual (pincel)
             if (puntosActuales.size() > 1) {
                 g2d.setColor(colorActual);
-                g2d.setStroke(new BasicStroke(trazoAncho));
+                g2d.setStroke(new BasicStroke(grosorTrazo));
                 
                 for (int i = 1; i < puntosActuales.size(); i++) {
                     Point p1 = puntosActuales.get(i - 1);
